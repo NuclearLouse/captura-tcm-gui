@@ -29,19 +29,19 @@ func newModelSuppliers() *modelSuppliers {
 }
 
 func dataTableSuppliers() (int, [][]string, error) {
-	var profiles []structs.ItestProfiles
-	if err := pg.Find(&profiles).Error; err != nil {
+	var suppliers []structs.ItestSuppliers
+	if err := pg.Find(&suppliers).Error; err != nil {
 		return 0, nil, err
 	}
-	rows := len(profiles) + 1
+	rows := len(suppliers) + 1
 	cellValue := make([][]string, rows)
 	cellValue[1] = make([]string, rows)
 	cellValue[2] = make([]string, rows)
 	cellValue[3] = make([]string, rows)
-	for i := range profiles {
-		cellValue[1][i] = profiles[i].ProfileID
-		cellValue[2][i] = profiles[i].ProfileName
-		cellValue[3][i] = profiles[i].ProfileIP
+	for i := range suppliers {
+		cellValue[1][i] = suppliers[i].SupplierID
+		cellValue[2][i] = suppliers[i].SupplierName
+		cellValue[3][i] = suppliers[i].Prefix
 	}
 	return rows, cellValue, nil
 }
@@ -49,17 +49,17 @@ func dataTableSuppliers() (int, [][]string, error) {
 func (ms *modelSuppliers) ButtAddSupplier() {
 	for i := 0; i < ms.quantityRows; i++ {
 		if ms.checkStates[i] == 1 {
-			fmt.Printf("Added row %d. Profile=%s. ID=%s\n", i+1, ms.cellValue[2][i], ms.cellValue[1][i])
-			profile := fmt.Sprintf("Profile: %s", ms.cellValue[2][i])
-			switch ms.cellValue[2][i] {
-			case "AMVTS":
-				newTest.SystemName = "amvts"
-			case "BMVTS":
-				newTest.SystemName = "bmvts"
-			case "Avys_S2":
-				newTest.SystemName = "fmvts"
+			fmt.Printf("Added row %d. Prefix=%s. ID=%s\n", i+1, ms.cellValue[3][i], ms.cellValue[1][i])
+			var supplier string
+			switch newTest.CallType {
+			case "CLI":
+				newTest.SupplierID = ms.cellValue[1][i]
+				supplier = fmt.Sprintf("SupplierID: %s", ms.cellValue[1][i])
+			case "Voice":
+				newTest.Prefix = ms.cellValue[2][i]
+				supplier = fmt.Sprintf("Prefix: %s", ms.cellValue[3][i])
 			}
-			entryProfile.SetText(profile)
+			entrySupplier.SetText(supplier)
 			return
 		}
 	}
