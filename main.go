@@ -17,11 +17,12 @@ import (
 )
 
 var (
-	mainwin *ui.Window
-	pg      *gorm.DB
-	// db      *database.DB
-	slash   string
-	absPath string
+	itestAPI                                                            structs.ItestApi
+	mainwin                                                             *ui.Window
+	pg                                                                  *gorm.DB
+	slash                                                               string
+	absPath                                                             string
+	entryType, entryProfile, entrySupplier, entryCountry, entryBreakout *ui.Entry
 )
 
 const (
@@ -54,10 +55,20 @@ func init() {
 		l.Fatal("FATAL! Could not connect to the database. Error=", err)
 	}
 	pg = db.Connect
+	if err := apiSettings(); err != nil {
+		l.Fatal("FATAL! Cann't obtained iTest API settings. Error=", err)
+	}
 }
 
 func main() {
 	ui.Main(setupUI)
+}
+
+func apiSettings() error {
+	if err := pg.Take(&itestAPI).Error; err != nil {
+		return err
+	}
+	return nil
 }
 
 func tSystems() (int, [][]string, error) {
@@ -100,6 +111,9 @@ func (mh *myModelHandler) Butt() {
 	for i := 0; i < mh.quantityRows; i++ {
 		if mh.checkStates[i] == 1 {
 			fmt.Printf("Added row %d. Profile=%s. ID=%s\n", i+1, mh.cellValue[2][i], mh.cellValue[1][i])
+			profile := fmt.Sprintf("Profile: %s", mh.cellValue[2][i])
+			entryProfile.SetText(profile)
+			return
 		}
 	}
 
@@ -135,7 +149,7 @@ func (mh *myModelHandler) SetCellValue(m *ui.TableModel, row, column int, value 
 }
 
 func setupUI() {
-	mainwin = ui.NewWindow("Test Calls System Manage - Initiate New Tests", 700, 480, true)
+	mainwin = ui.NewWindow("Test Calls System Manage - Initiate New Tests", 780, 480, true)
 	mainwin.OnClosing(func(*ui.Window) bool {
 		ui.Quit()
 		return true
@@ -144,30 +158,113 @@ func setupUI() {
 		mainwin.Destroy()
 		return true
 	})
-
-	tab := ui.NewTab()
-	mainwin.SetChild(tab)
+	// Создание основного бокса
+	mainVbox := ui.NewVerticalBox()
+	mainVbox.SetPadded(true)
+	mainwin.SetChild(mainVbox)
 	mainwin.SetMargined(true)
 
-	tab.Append("Tests Systems", makeInitTestPage())
-	tab.SetMargined(0, true)
+	// Создание бокса для размещения вкладок
+	tabsHbox := ui.NewHorizontalBox()
+	tabsHbox.SetPadded(true)
+	mainVbox.Append(tabsHbox, true)
 
-	// tab.Append("Settings", makeSettingsPage())
-	// tab.SetMargined(1, true)
+	// Размещение вкладок на боксе
+	tabProfiles := ui.NewTab()
+	tabProfiles.Append("Profiles", makeProfilesPage())
+	tabProfiles.SetMargined(0, true)
+	tabProfiles.Append("Suppliers", makeSuppliersPage())
+	tabProfiles.SetMargined(1, true)
+	tabProfiles.Append("Destinations", makeDestinationsPage())
+	tabProfiles.SetMargined(2, true)
+	tabProfiles.Append("Results", makeResultsPage())
+	tabProfiles.SetMargined(3, true)
+	tabsHbox.Append(tabProfiles, true)
+
+	mainVbox.Append(ui.NewHorizontalSeparator(), false)
+
+	// Создание бокса для информации о добавляемых значениях
+	entrysHbox := ui.NewHorizontalBox()
+	entrysHbox.SetPadded(true)
+	mainVbox.Append(entrysHbox, false)
+
+	// Создание и управление ячейками
+	entryType = ui.NewEntry()
+	entryType.SetReadOnly(true)
+	entryType.SetText("Test Type:")
+	entryProfile = ui.NewEntry()
+	entryProfile.SetReadOnly(true)
+	entryProfile.SetText("Profile:")
+	entrySupplier = ui.NewEntry()
+	entrySupplier.SetReadOnly(true)
+	entrySupplier.SetText("Supplier or Prefix:")
+	entryCountry = ui.NewEntry()
+	entryCountry.SetReadOnly(true)
+	entryCountry.SetText("CountryID:")
+	entryBreakout = ui.NewEntry()
+	entryBreakout.SetReadOnly(true)
+	entryBreakout.SetText("Breakout:")
+
+	// Размещение ячеек для добавленой информации
+	entrysHbox.Append(entryType, true)
+	entrysHbox.Append(entryProfile, true)
+	entrysHbox.Append(entrySupplier, true)
+	entrysHbox.Append(entryCountry, true)
+	entrysHbox.Append(entryBreakout, true)
+
+	// Кнопка старт тестов
+	buttonStart := ui.NewButton("Start Test")
+	buttonStart.OnClicked(func(*ui.Button) {
+		textType := testType()
+		if textType == "" {
+			textType = "(cancelled)"
+		}
+		entryType.SetText(textType)
+	})
+	// entrysHbox.Append(entryForm, true)
+	entrysHbox.Append(buttonStart, true)
 
 	mainwin.Show()
 }
 
-func makeInitTestPage() ui.Control {
+func testType() string {
+	return "Test Type: CLI"
+}
+
+func makeProfilesPage() ui.Control {
 	// vbox := ui.NewVerticalBox()
 	hbox := ui.NewHorizontalBox()
 	hbox.SetPadded(true)
 
-	group := ui.NewGroup("Profiles")
+	group := ui.NewGroup("Test Type")
+	group.SetMargined(true)
+	hbox.Append(group, false)
+	vbox := ui.NewVerticalBox()
+	vbox.SetPadded(true)
+	group.SetChild(vbox)
+
+	rb := ui.NewRadioButtons()
+	rb.Append("Test CLI")
+	rb.Append("Test Voice")
+	vbox.Append(rb, false)
+
+	rb.OnSelected(func(*ui.RadioButtons) {
+		var typeTest string
+		switch rb.Selected() {
+		case 0:
+			typeTest = "CLI"
+		case 1:
+			typeTest = "Voice"
+		}
+		text := fmt.Sprintf("Test Type: %s", typeTest)
+		entryType.SetText(text)
+	})
+
+	group = ui.NewGroup("Profiles")
 	group.SetMargined(true)
 	hbox.Append(group, true)
 
-	vbox := ui.NewVerticalBox()
+	vbox = ui.NewVerticalBox()
 	vbox.SetPadded(true)
 	group.SetChild(vbox)
 
@@ -176,8 +273,6 @@ func makeInitTestPage() ui.Control {
 	table := ui.NewTable(&ui.TableParams{
 		Model: model,
 	})
-	// group.SetChild(table)
-	// group.SetMargined(true)
 
 	table.AppendTextColumn("№", 0, ui.TableModelColumnNeverEditable, nil)
 	table.AppendTextColumn("Profile ID", 1, ui.TableModelColumnNeverEditable, nil)
@@ -185,13 +280,12 @@ func makeInitTestPage() ui.Control {
 	table.AppendTextColumn("Profile IP", 3, ui.TableModelColumnNeverEditable, nil)
 	table.AppendCheckboxColumn("Select", 4, ui.TableModelColumnAlwaysEditable)
 
-	button := ui.NewButton("Add System")
+	button := ui.NewButton("Add Profile")
 	vbox.Append(table, true)
 	grid := ui.NewGrid()
 	grid.SetPadded(true)
 	vbox.Append(grid, false)
 
-	// vbox.Append(button, false)
 	button.OnClicked(func(*ui.Button) {
 		mh.Butt()
 	})
@@ -202,9 +296,18 @@ func makeInitTestPage() ui.Control {
 
 	return hbox
 }
-
-func makeSettingsPage() ui.Control {
-	vbox := ui.NewVerticalBox()
-	vbox.SetPadded(true)
-	return vbox
+func makeSuppliersPage() ui.Control {
+	hbox := ui.NewHorizontalBox()
+	hbox.SetPadded(true)
+	return hbox
+}
+func makeDestinationsPage() ui.Control {
+	hbox := ui.NewHorizontalBox()
+	hbox.SetPadded(true)
+	return hbox
+}
+func makeResultsPage() ui.Control {
+	hbox := ui.NewHorizontalBox()
+	hbox.SetPadded(true)
+	return hbox
 }
