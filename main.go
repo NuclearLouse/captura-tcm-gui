@@ -18,6 +18,7 @@ import (
 
 var (
 	itestAPI                                                            structs.ItestApi
+	newTest                                                             structs.NewInitTest
 	mainwin                                                             *ui.Window
 	pg                                                                  *gorm.DB
 	slash                                                               string
@@ -58,10 +59,12 @@ func init() {
 	if err := apiSettings(); err != nil {
 		l.Fatal("FATAL! Cann't obtained iTest API settings. Error=", err)
 	}
+
 }
 
 func main() {
 	ui.Main(setupUI)
+	defer fmt.Println(newTest)
 }
 
 func apiSettings() error {
@@ -69,83 +72,6 @@ func apiSettings() error {
 		return err
 	}
 	return nil
-}
-
-func tSystems() (int, [][]string, error) {
-	var profiles []structs.ItestProfiles
-	if err := pg.Find(&profiles).Error; err != nil {
-		return 0, nil, err
-	}
-	rows := len(profiles) + 1
-	cellValue := make([][]string, rows)
-	cellValue[1] = make([]string, rows)
-	cellValue[2] = make([]string, rows)
-	cellValue[3] = make([]string, rows)
-	for i := range profiles {
-		cellValue[1][i] = profiles[i].ProfileID
-		cellValue[2][i] = profiles[i].ProfileName
-		cellValue[3][i] = profiles[i].ProfileIP
-	}
-	return rows, cellValue, nil
-}
-
-type myModelHandler struct {
-	quantityRows int
-	checkStates  []int
-	cellValue    [][]string
-}
-
-func newNodelHandler() *myModelHandler {
-	m := new(myModelHandler)
-	rows, systems, err := tSystems()
-	if err != nil {
-		l.Println("Error reading from database. Err=", err)
-	}
-	m.quantityRows = rows - 1
-	m.checkStates = make([]int, m.quantityRows)
-	m.cellValue = systems
-	return m
-}
-
-func (mh *myModelHandler) Butt() {
-	for i := 0; i < mh.quantityRows; i++ {
-		if mh.checkStates[i] == 1 {
-			fmt.Printf("Added row %d. Profile=%s. ID=%s\n", i+1, mh.cellValue[2][i], mh.cellValue[1][i])
-			profile := fmt.Sprintf("Profile: %s", mh.cellValue[2][i])
-			entryProfile.SetText(profile)
-			return
-		}
-	}
-
-}
-
-func (mh *myModelHandler) ColumnTypes(m *ui.TableModel) []ui.TableValue {
-	return []ui.TableValue{
-		ui.TableString(""),
-		ui.TableString(""),
-		ui.TableString(""),
-		ui.TableString(""),
-		ui.TableInt(0), // column 3 checkbox state
-	}
-}
-func (mh *myModelHandler) NumRows(m *ui.TableModel) int {
-	return mh.quantityRows
-}
-
-func (mh *myModelHandler) CellValue(m *ui.TableModel, row, column int) ui.TableValue {
-	if column == 0 {
-		return ui.TableString(fmt.Sprintf("%d", row+1))
-	}
-	if column == 4 {
-		return ui.TableInt(mh.checkStates[row])
-	}
-	return ui.TableString(mh.cellValue[column][row])
-}
-
-func (mh *myModelHandler) SetCellValue(m *ui.TableModel, row, column int, value ui.TableValue) {
-	if column == 4 { // checkboxes
-		mh.checkStates[row] = int(value.(ui.TableInt))
-	}
 }
 
 func setupUI() {
@@ -232,7 +158,7 @@ func testType() string {
 }
 
 func makeProfilesPage() ui.Control {
-	// vbox := ui.NewVerticalBox()
+	// Создание вкладки типа теста и профилей
 	hbox := ui.NewHorizontalBox()
 	hbox.SetPadded(true)
 
@@ -257,6 +183,7 @@ func makeProfilesPage() ui.Control {
 			typeTest = "Voice"
 		}
 		text := fmt.Sprintf("Test Type: %s", typeTest)
+		newTest.CallType = typeTest
 		entryType.SetText(text)
 	})
 
@@ -268,8 +195,8 @@ func makeProfilesPage() ui.Control {
 	vbox.SetPadded(true)
 	group.SetChild(vbox)
 
-	mh := newNodelHandler()
-	model := ui.NewTableModel(mh)
+	mp := newModelProfiles()
+	model := ui.NewTableModel(mp)
 	table := ui.NewTable(&ui.TableParams{
 		Model: model,
 	})
@@ -287,7 +214,7 @@ func makeProfilesPage() ui.Control {
 	vbox.Append(grid, false)
 
 	button.OnClicked(func(*ui.Button) {
-		mh.Butt()
+		mp.ButtAddProfile()
 	})
 
 	grid.Append(button,
@@ -299,6 +226,40 @@ func makeProfilesPage() ui.Control {
 func makeSuppliersPage() ui.Control {
 	hbox := ui.NewHorizontalBox()
 	hbox.SetPadded(true)
+	group := ui.NewGroup("Suppliers")
+	group.SetMargined(true)
+	hbox.Append(group, true)
+
+	vbox := ui.NewVerticalBox()
+	vbox.SetPadded(true)
+	group.SetChild(vbox)
+
+	ms := newModelSuppliers()
+	model := ui.NewTableModel(ms)
+	table := ui.NewTable(&ui.TableParams{
+		Model: model,
+	})
+
+	table.AppendTextColumn("№", 0, ui.TableModelColumnNeverEditable, nil)
+	table.AppendTextColumn("Supplier ID", 1, ui.TableModelColumnNeverEditable, nil)
+	table.AppendTextColumn("Supplier Name", 2, ui.TableModelColumnNeverEditable, nil)
+	table.AppendTextColumn("Prefix", 3, ui.TableModelColumnNeverEditable, nil)
+	table.AppendCheckboxColumn("Select", 4, ui.TableModelColumnAlwaysEditable)
+
+	button := ui.NewButton("Add Supplier")
+	vbox.Append(table, true)
+	grid := ui.NewGrid()
+	grid.SetPadded(true)
+	vbox.Append(grid, false)
+
+	button.OnClicked(func(*ui.Button) {
+		ms.ButtAddSupplier()
+	})
+
+	grid.Append(button,
+		1, 0, 1, 1, //left, top int, xspan, yspan int
+		false, ui.AlignCenter, false, ui.AlignCenter)
+
 	return hbox
 }
 func makeDestinationsPage() ui.Control {
