@@ -16,6 +16,8 @@ type modelSuppliers struct {
 	cellValue    [][]string
 }
 
+// var m *modelSuppliers
+
 func newModelSuppliers() *modelSuppliers {
 	m := new(modelSuppliers)
 	rows, values, err := dataTableSuppliers()
@@ -30,7 +32,9 @@ func newModelSuppliers() *modelSuppliers {
 
 func dataTableSuppliers() (int, [][]string, error) {
 	var suppliers []structs.ItestSuppliers
-	if err := pg.Find(&suppliers).Error; err != nil {
+	searchTemplate = fmt.Sprintf("%s%%", newTest.SystemName)
+	fmt.Println(searchTemplate)
+	if err := pg.Where("supplier_name LIKE ?", searchTemplate).Find(&suppliers).Error; err != nil {
 		return 0, nil, err
 	}
 	rows := len(suppliers) + 1
@@ -56,14 +60,13 @@ func (ms *modelSuppliers) ButtAddSupplier() {
 				newTest.SupplierID = ms.cellValue[1][i]
 				supplier = fmt.Sprintf("SupplierID: %s", ms.cellValue[1][i])
 			case "Voice":
-				newTest.Prefix = ms.cellValue[2][i]
+				newTest.Prefix = ms.cellValue[3][i]
 				supplier = fmt.Sprintf("Prefix: %s", ms.cellValue[3][i])
 			}
 			entrySupplier.SetText(supplier)
 			return
 		}
 	}
-
 }
 
 func (ms *modelSuppliers) ColumnTypes(m *ui.TableModel) []ui.TableValue {
@@ -72,7 +75,7 @@ func (ms *modelSuppliers) ColumnTypes(m *ui.TableModel) []ui.TableValue {
 		ui.TableString(""),
 		ui.TableString(""),
 		ui.TableString(""),
-		ui.TableInt(0), // column 3 checkbox state
+		ui.TableInt(0), // column 4 checkbox state
 	}
 }
 func (ms *modelSuppliers) NumRows(m *ui.TableModel) int {

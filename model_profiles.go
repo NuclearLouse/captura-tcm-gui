@@ -60,6 +60,7 @@ func (mp *modelProfiles) ButtAddProfile() {
 				newTest.SystemName = "fmvts"
 			}
 			entryProfile.SetText(profile)
+			newModelSuppliers()
 			return
 		}
 	}
@@ -72,7 +73,7 @@ func (mp *modelProfiles) ColumnTypes(m *ui.TableModel) []ui.TableValue {
 		ui.TableString(""),
 		ui.TableString(""),
 		ui.TableString(""),
-		ui.TableInt(0), // column 3 checkbox state
+		ui.TableInt(0), // column 4 checkbox state
 	}
 }
 func (mp *modelProfiles) NumRows(m *ui.TableModel) int {

@@ -23,6 +23,7 @@ var (
 	pg                                                                  *gorm.DB
 	slash                                                               string
 	absPath                                                             string
+	searchTemplate                                                      string
 	entryType, entryProfile, entrySupplier, entryCountry, entryBreakout *ui.Entry
 )
 
@@ -90,21 +91,15 @@ func setupUI() {
 	mainwin.SetChild(mainVbox)
 	mainwin.SetMargined(true)
 
-	// Создание бокса для размещения вкладок
+	// Создание бокса для размещения вкладки
 	tabsHbox := ui.NewHorizontalBox()
 	tabsHbox.SetPadded(true)
 	mainVbox.Append(tabsHbox, true)
 
-	// Размещение вкладок на боксе
+	// Размещение вкладки на боксе
 	tabProfiles := ui.NewTab()
 	tabProfiles.Append("Profiles", makeProfilesPage())
 	tabProfiles.SetMargined(0, true)
-	tabProfiles.Append("Suppliers", makeSuppliersPage())
-	tabProfiles.SetMargined(1, true)
-	tabProfiles.Append("Destinations", makeDestinationsPage())
-	tabProfiles.SetMargined(2, true)
-	tabProfiles.Append("Results", makeResultsPage())
-	tabProfiles.SetMargined(3, true)
 	tabsHbox.Append(tabProfiles, true)
 
 	mainVbox.Append(ui.NewHorizontalSeparator(), false)
@@ -126,7 +121,7 @@ func setupUI() {
 	entrySupplier.SetText("Supplier or Prefix:")
 	entryCountry = ui.NewEntry()
 	entryCountry.SetReadOnly(true)
-	entryCountry.SetText("CountryID:")
+	entryCountry.SetText("Country:")
 	entryBreakout = ui.NewEntry()
 	entryBreakout.SetReadOnly(true)
 	entryBreakout.SetText("Breakout:")
@@ -158,21 +153,45 @@ func testType() string {
 }
 
 func makeProfilesPage() ui.Control {
+	vbox := ui.NewVerticalBox()
+	vbox.SetPadded(true)
+
+	butSup := ui.NewButton("Select Suppliers")
+	butSup.OnClicked(func(*ui.Button) {
+		makeSuppliersPage()
+	})
+	butDes := ui.NewButton("Select Destination")
+	butDes.OnClicked(func(*ui.Button) {
+		makeDestinationsPage()
+	})
+
+	grid := ui.NewGrid()
+	grid.SetPadded(true)
+	vbox.Append(grid, false)
+	grid.Append(butSup,
+		1, 0, 1, 1, //left, top int, xspan, yspan int
+		false, ui.AlignCenter, false, ui.AlignCenter)
+	grid.Append(butDes,
+		2, 0, 1, 1, //left, top int, xspan, yspan int
+		false, ui.AlignCenter, false, ui.AlignCenter)
+
 	// Создание вкладки типа теста и профилей
 	hbox := ui.NewHorizontalBox()
 	hbox.SetPadded(true)
 
+	vbox.Append(hbox, true)
+
 	group := ui.NewGroup("Test Type")
 	group.SetMargined(true)
 	hbox.Append(group, false)
-	vbox := ui.NewVerticalBox()
-	vbox.SetPadded(true)
-	group.SetChild(vbox)
+	vboxg := ui.NewVerticalBox()
+	vboxg.SetPadded(true)
+	group.SetChild(vboxg)
 
 	rb := ui.NewRadioButtons()
 	rb.Append("Test CLI")
 	rb.Append("Test Voice")
-	vbox.Append(rb, false)
+	vboxg.Append(rb, false)
 
 	rb.OnSelected(func(*ui.RadioButtons) {
 		var typeTest string
@@ -191,9 +210,9 @@ func makeProfilesPage() ui.Control {
 	group.SetMargined(true)
 	hbox.Append(group, true)
 
-	vbox = ui.NewVerticalBox()
-	vbox.SetPadded(true)
-	group.SetChild(vbox)
+	vboxt := ui.NewVerticalBox()
+	vboxt.SetPadded(true)
+	group.SetChild(vboxt)
 
 	mp := newModelProfiles()
 	model := ui.NewTableModel(mp)
@@ -208,10 +227,10 @@ func makeProfilesPage() ui.Control {
 	table.AppendCheckboxColumn("Select", 4, ui.TableModelColumnAlwaysEditable)
 
 	button := ui.NewButton("Add Profile")
-	vbox.Append(table, true)
-	grid := ui.NewGrid()
+	vboxt.Append(table, true)
+	grid = ui.NewGrid()
 	grid.SetPadded(true)
-	vbox.Append(grid, false)
+	vboxt.Append(grid, false)
 
 	button.OnClicked(func(*ui.Button) {
 		mp.ButtAddProfile()
@@ -221,54 +240,118 @@ func makeProfilesPage() ui.Control {
 		1, 0, 1, 1, //left, top int, xspan, yspan int
 		false, ui.AlignCenter, false, ui.AlignCenter)
 
-	return hbox
+	return vbox
 }
-func makeSuppliersPage() ui.Control {
-	hbox := ui.NewHorizontalBox()
-	hbox.SetPadded(true)
-	group := ui.NewGroup("Suppliers")
-	group.SetMargined(true)
-	hbox.Append(group, true)
 
-	vbox := ui.NewVerticalBox()
-	vbox.SetPadded(true)
-	group.SetChild(vbox)
+func makeSuppliersPage() {
+	if newTest.SystemName != "" {
+		win := ui.NewWindow("Suppliers", 780, 480, true)
+		win.OnClosing(func(*ui.Window) bool {
+			win.Destroy()
+			return false
+		})
+		ui.OnShouldQuit(func() bool {
+			win.Destroy()
+			return false
+		})
 
-	ms := newModelSuppliers()
-	model := ui.NewTableModel(ms)
-	table := ui.NewTable(&ui.TableParams{
-		Model: model,
-	})
+		vbox := ui.NewVerticalBox()
+		vbox.SetPadded(true)
+		win.SetChild(vbox)
+		win.SetMargined(true)
 
-	table.AppendTextColumn("№", 0, ui.TableModelColumnNeverEditable, nil)
-	table.AppendTextColumn("Supplier ID", 1, ui.TableModelColumnNeverEditable, nil)
-	table.AppendTextColumn("Supplier Name", 2, ui.TableModelColumnNeverEditable, nil)
-	table.AppendTextColumn("Prefix", 3, ui.TableModelColumnNeverEditable, nil)
-	table.AppendCheckboxColumn("Select", 4, ui.TableModelColumnAlwaysEditable)
+		group := ui.NewGroup("Suppliers")
+		group.SetMargined(true)
+		vbox.Append(group, true)
 
-	button := ui.NewButton("Add Supplier")
-	vbox.Append(table, true)
-	grid := ui.NewGrid()
-	grid.SetPadded(true)
-	vbox.Append(grid, false)
+		vboxt := ui.NewVerticalBox()
+		vboxt.SetPadded(true)
+		group.SetChild(vboxt)
 
-	button.OnClicked(func(*ui.Button) {
-		ms.ButtAddSupplier()
-	})
+		ms := newModelSuppliers()
+		model := ui.NewTableModel(ms)
+		table := ui.NewTable(&ui.TableParams{
+			Model: model,
+		})
+		table.AppendTextColumn("№", 0, ui.TableModelColumnNeverEditable, nil)
+		table.AppendTextColumn("Supplier ID", 1, ui.TableModelColumnNeverEditable, nil)
+		table.AppendTextColumn("Supplier Name", 2, ui.TableModelColumnNeverEditable, nil)
+		table.AppendTextColumn("Prefix", 3, ui.TableModelColumnNeverEditable, nil)
+		table.AppendCheckboxColumn("Select", 4, ui.TableModelColumnAlwaysEditable)
 
-	grid.Append(button,
-		1, 0, 1, 1, //left, top int, xspan, yspan int
-		false, ui.AlignCenter, false, ui.AlignCenter)
+		button := ui.NewButton("Add Supplier")
+		vboxt.Append(table, true)
+		grid := ui.NewGrid()
+		grid.SetPadded(true)
+		vboxt.Append(grid, false)
 
-	return hbox
+		button.OnClicked(func(*ui.Button) {
+			ms.ButtAddSupplier()
+			win.Destroy()
+		})
+
+		grid.Append(button,
+			1, 0, 1, 1, //left, top int, xspan, yspan int
+			false, ui.AlignCenter, false, ui.AlignCenter)
+
+		win.Show()
+	}
+	// иначе надо показывать окно с предупреждением о выборе системы
 }
-func makeDestinationsPage() ui.Control {
-	hbox := ui.NewHorizontalBox()
-	hbox.SetPadded(true)
-	return hbox
-}
-func makeResultsPage() ui.Control {
-	hbox := ui.NewHorizontalBox()
-	hbox.SetPadded(true)
-	return hbox
+
+func makeDestinationsPage() {
+	if newTest.CallType != "" && newTest.SystemName != "" {
+		win := ui.NewWindow("Destinations", 780, 480, true)
+		win.OnClosing(func(*ui.Window) bool {
+			win.Destroy()
+			return false
+		})
+		ui.OnShouldQuit(func() bool {
+			win.Destroy()
+			return false
+		})
+
+		vbox := ui.NewVerticalBox()
+		vbox.SetPadded(true)
+		win.SetChild(vbox)
+		win.SetMargined(true)
+
+		group := ui.NewGroup("Breakouts")
+		group.SetMargined(true)
+		vbox.Append(group, true)
+
+		vboxt := ui.NewVerticalBox()
+		vboxt.SetPadded(true)
+		group.SetChild(vboxt)
+
+		ms := newModelBreakouts()
+		model := ui.NewTableModel(ms)
+		table := ui.NewTable(&ui.TableParams{
+			Model: model,
+		})
+		table.AppendTextColumn("№", 0, ui.TableModelColumnNeverEditable, nil)
+		table.AppendTextColumn("Country ID", 1, ui.TableModelColumnNeverEditable, nil)
+		table.AppendTextColumn("Country Name", 2, ui.TableModelColumnNeverEditable, nil)
+		table.AppendTextColumn("Breakout", 3, ui.TableModelColumnNeverEditable, nil)
+		table.AppendTextColumn("Breakout ID", 4, ui.TableModelColumnNeverEditable, nil)
+		table.AppendCheckboxColumn("Select", 5, ui.TableModelColumnAlwaysEditable)
+
+		button := ui.NewButton("Add Destination")
+		vboxt.Append(table, true)
+		grid := ui.NewGrid()
+		grid.SetPadded(true)
+		vboxt.Append(grid, false)
+
+		button.OnClicked(func(*ui.Button) {
+			ms.ButtAddBreakout()
+			win.Destroy()
+		})
+
+		grid.Append(button,
+			1, 0, 1, 1, //left, top int, xspan, yspan int
+			false, ui.AlignCenter, false, ui.AlignCenter)
+
+		win.Show()
+	}
+	// иначе надо показывать окно с предупреждением о выборе типа теста
 }
