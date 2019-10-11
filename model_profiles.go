@@ -59,8 +59,11 @@ func (mp *modelProfiles) ButtAddProfile() {
 			case "Avys_S2":
 				newTest.SystemName = "fmvts"
 			}
+			newTest.ProfileID = mp.cellValue[1][i]
+			textRequest = fmt.Sprintf("Request: %s?t=%d&profid=%s&%s=%s&ndbccgid=%s&ndbcgid=%s",
+				itestAPI.ApiURL, apiRequest, newTest.ProfileID, venPref, newTest.SupOrPref, newTest.CountryID, newTest.BreakoutID)
 			entryProfile.SetText(profile)
-			newModelSuppliers()
+			entryRequest.SetText(textRequest)
 			return
 		}
 	}

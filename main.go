@@ -1,14 +1,20 @@
 package main
 
 import (
+	"encoding/xml"
 	"fmt"
+	"io/ioutil"
 	l "log"
+	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 	"runtime"
+	"strings"
 
 	"github.com/andlabs/ui"
 	_ "github.com/andlabs/ui/winmanifest"
+	"golang.org/x/net/html/charset"
 
 	"github.com/jinzhu/gorm"
 	"redits.oculeus.com/asorokin/tcm/config"
@@ -17,19 +23,33 @@ import (
 )
 
 var (
-	itestAPI                                                            structs.ItestApi
-	newTest                                                             structs.NewInitTest
-	mainwin                                                             *ui.Window
-	pg                                                                  *gorm.DB
-	slash                                                               string
-	absPath                                                             string
-	searchTemplate                                                      string
-	entryType, entryProfile, entrySupplier, entryCountry, entryBreakout *ui.Entry
+	itestAPI                                                      structs.ItestApi
+	newTest                                                       structs.NewInitTest
+	mainwin                                                       *ui.Window
+	pg                                                            *gorm.DB
+	apiRequest                                                    int
+	slash, absPath, searchTemplate, textRequest, venPref, prefSup string
+	entryType, entryProfile, entrySupplier,
+	entryCountry, entryBreakout, entryRequest *ui.Entry
 )
 
 const (
 	settingsFile = "tcm.ini"
 )
+
+func httpResponse(request string) (*http.Response, error) {
+	response, err := http.PostForm(request, url.Values{"email": {itestAPI.User}, "pass": {itestAPI.Pass}})
+	if err != nil {
+		return nil, err
+	}
+	return response, nil
+}
+
+func xmlDecoder(response *http.Response) *xml.Decoder {
+	decoder := xml.NewDecoder(response.Body)
+	decoder.CharsetReader = charset.NewReaderLabel
+	return decoder
+}
 
 func init() {
 	var err error
@@ -133,23 +153,47 @@ func setupUI() {
 	entrysHbox.Append(entryCountry, true)
 	entrysHbox.Append(entryBreakout, true)
 
+	requestHbox := ui.NewHorizontalBox()
+	requestHbox.SetPadded(true)
+	mainVbox.Append(requestHbox, false)
+
+	entryRequest = ui.NewEntry()
+	entryRequest.SetReadOnly(true)
+	textRequest = fmt.Sprintf("Request: %s", itestAPI.ApiURL)
+	entryRequest.SetText(textRequest)
+	requestHbox.Append(entryRequest, true)
 	// Кнопка старт тестов
 	buttonStart := ui.NewButton("Start Test")
 	buttonStart.OnClicked(func(*ui.Button) {
-		textType := testType()
-		if textType == "" {
-			textType = "(cancelled)"
-		}
-		entryType.SetText(textType)
+		startTest()
+
 	})
 	// entrysHbox.Append(entryForm, true)
-	entrysHbox.Append(buttonStart, true)
+	requestHbox.Append(buttonStart, false)
 
 	mainwin.Show()
 }
 
-func testType() string {
-	return "Test Type: CLI"
+func startTest() {
+	request := strings.Split(textRequest, "Request: ")[1]
+	response, err := httpResponse(request)
+	if err != nil {
+		l.Println("Error http request. Error: ", err)
+	}
+	// defer response.Body.Close()
+	// fmt.Println(response.Body)
+	// decoder := xmlDecoder(response)
+	// var testinit structs.TestInitiation
+	// if err := decoder.Decode(&testinit); err != nil {
+	// 	l.Println("Error decode http response. Error: ", err)
+	// }
+	// fmt.Println(testinit)
+	body, err := ioutil.ReadAll(response.Body)
+	response.Body.Close()
+	if err != nil {
+		l.Println("Не смог прочитать тело ответа. Ошибка=", err)
+	}
+	l.Println(string(body))
 }
 
 func makeProfilesPage() ui.Control {
@@ -198,12 +242,19 @@ func makeProfilesPage() ui.Control {
 		switch rb.Selected() {
 		case 0:
 			typeTest = "CLI"
+			apiRequest = itestAPI.TestInitCli
+			venPref = "vended"
 		case 1:
 			typeTest = "Voice"
+			apiRequest = itestAPI.TestInit
+			venPref = "prefix"
 		}
 		text := fmt.Sprintf("Test Type: %s", typeTest)
 		newTest.CallType = typeTest
+		textRequest = fmt.Sprintf("Request: %s?t=%d&profid=%s&%s=%s&ndbccgid=%s&ndbcgid=%s",
+			itestAPI.ApiURL, apiRequest, newTest.ProfileID, venPref, newTest.SupOrPref, newTest.CountryID, newTest.BreakoutID)
 		entryType.SetText(text)
+		entryRequest.SetText(textRequest)
 	})
 
 	group = ui.NewGroup("Profiles")

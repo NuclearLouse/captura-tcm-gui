@@ -16,8 +16,6 @@ type modelSuppliers struct {
 	cellValue    [][]string
 }
 
-// var m *modelSuppliers
-
 func newModelSuppliers() *modelSuppliers {
 	m := new(modelSuppliers)
 	rows, values, err := dataTableSuppliers()
@@ -57,13 +55,17 @@ func (ms *modelSuppliers) ButtAddSupplier() {
 			var supplier string
 			switch newTest.CallType {
 			case "CLI":
-				newTest.SupplierID = ms.cellValue[1][i]
+				newTest.SupOrPref = ms.cellValue[1][i]
 				supplier = fmt.Sprintf("SupplierID: %s", ms.cellValue[1][i])
 			case "Voice":
-				newTest.Prefix = ms.cellValue[3][i]
+				newTest.SupOrPref = ms.cellValue[3][i]
 				supplier = fmt.Sprintf("Prefix: %s", ms.cellValue[3][i])
+
 			}
+			textRequest = fmt.Sprintf("Request: %s?t=%d&profid=%s&%s=%s&ndbccgid=%s&ndbcgid=%s",
+				itestAPI.ApiURL, apiRequest, newTest.ProfileID, venPref, newTest.SupOrPref, newTest.CountryID, newTest.BreakoutID)
 			entrySupplier.SetText(supplier)
+			entryRequest.SetText(textRequest)
 			return
 		}
 	}

@@ -84,8 +84,11 @@ func (mb *modelBreakouts) ButtAddBreakout() {
 			newTest.BreakoutID = mb.cellValue[4][i]
 			country := fmt.Sprintf("Country: %s", mb.cellValue[2][i])
 			breakout := fmt.Sprintf("Breakout: %s", mb.cellValue[3][i])
+			textRequest = fmt.Sprintf("Request: %s?t=%d&profid=%s&%s=%s&ndbccgid=%s&ndbcgid=%s",
+				itestAPI.ApiURL, apiRequest, newTest.ProfileID, venPref, newTest.SupOrPref, newTest.CountryID, newTest.BreakoutID)
 			entryCountry.SetText(country)
 			entryBreakout.SetText(breakout)
+			entryRequest.SetText(textRequest)
 			return
 		}
 	}
