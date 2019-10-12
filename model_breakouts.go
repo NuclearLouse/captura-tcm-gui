@@ -6,12 +6,7 @@ import (
 
 	"github.com/andlabs/ui"
 	_ "github.com/andlabs/ui/winmanifest"
-
-	"redits.oculeus.com/asorokin/tcm/structs"
 )
-
-var breakCLI structs.ItestBreakoutsCli
-var breakSTD structs.ItestBreakoutsStd
 
 type modelBreakouts struct {
 	quantityRows int
@@ -20,7 +15,8 @@ type modelBreakouts struct {
 }
 
 func newModelBreakouts() *modelBreakouts {
-	m := new(modelBreakouts)
+	m := &modelBreakouts{}
+	// m := new(modelBreakouts)
 	rows, values, err := dataTableBreakouts()
 	if err != nil {
 		l.Println("Error reading from database. Err=", err)
@@ -32,48 +28,26 @@ func newModelBreakouts() *modelBreakouts {
 }
 
 func dataTableBreakouts() (int, [][]string, error) {
-	var rows int
-	var cellValue [][]string
 	var err error
-	switch newTest.CallType {
-	case "CLI":
-		var breakouts []structs.ItestBreakoutsCli
-		if err = pg.Find(&breakouts).Error; err != nil {
-			return 0, nil, err
-		}
-		rows = len(breakouts) + 1
-		cellValue := make([][]string, rows)
-		cellValue[1] = make([]string, rows)
-		cellValue[2] = make([]string, rows)
-		cellValue[3] = make([]string, rows)
-		cellValue[4] = make([]string, rows)
-		for i := range breakouts {
-			cellValue[1][i] = breakouts[i].CountryID
-			cellValue[2][i] = breakouts[i].CountryName
-			cellValue[3][i] = breakouts[i].BreakoutName
-			cellValue[4][i] = breakouts[i].BreakoutID
-		}
-		return rows, cellValue, nil
-	case "Voice":
-		var breakouts []structs.ItestBreakoutsStd
-		if err = pg.Find(&breakouts).Error; err != nil {
-			return 0, nil, err
-		}
-		rows = len(breakouts) + 1
-		cellValue := make([][]string, rows)
-		cellValue[1] = make([]string, rows)
-		cellValue[2] = make([]string, rows)
-		cellValue[3] = make([]string, rows)
-		cellValue[4] = make([]string, rows)
-		for i := range breakouts {
-			cellValue[1][i] = breakouts[i].CountryID
-			cellValue[2][i] = breakouts[i].CountryName
-			cellValue[3][i] = breakouts[i].BreakoutName
-			cellValue[4][i] = breakouts[i].BreakoutID
-		}
-		return rows, cellValue, nil
+	var b Breakouts
+	name := b.TableName()
+	var breakouts []Breakouts
+	if err = pg.Table(name).Find(&breakouts).Error; err != nil {
+		return 0, nil, err
 	}
-	return rows, cellValue, nil
+	rows := len(breakouts) + 1
+	cellValue := make([][]string, rows)
+	cellValue[1] = make([]string, rows)
+	cellValue[2] = make([]string, rows)
+	cellValue[3] = make([]string, rows)
+	cellValue[4] = make([]string, rows)
+	for i := range breakouts {
+		cellValue[1][i] = breakouts[i].CountryID
+		cellValue[2][i] = breakouts[i].CountryName
+		cellValue[3][i] = breakouts[i].BreakoutName
+		cellValue[4][i] = breakouts[i].BreakoutID
+	}
+	return rows, cellValue, err
 }
 
 func (mb *modelBreakouts) ButtAddBreakout() {
@@ -82,13 +56,13 @@ func (mb *modelBreakouts) ButtAddBreakout() {
 			fmt.Printf("Added row %d. CountryID=%s. Breakout=%s\n", i+1, mb.cellValue[1][i], mb.cellValue[4][i])
 			newTest.CountryID = mb.cellValue[1][i]
 			newTest.BreakoutID = mb.cellValue[4][i]
-			country := fmt.Sprintf("Country: %s", mb.cellValue[2][i])
-			breakout := fmt.Sprintf("Breakout: %s", mb.cellValue[3][i])
-			textRequest = fmt.Sprintf("Request: %s?t=%d&profid=%s&%s=%s&ndbccgid=%s&ndbcgid=%s",
+			entry.Country = fmt.Sprintf("Country: %s", mb.cellValue[2][i])
+			entry.Breakout = fmt.Sprintf("Breakout: %s", mb.cellValue[3][i])
+			entry.Request = fmt.Sprintf("%s?t=%d&profid=%s&%s=%s&ndbccgid=%s&ndbcgid=%s",
 				itestAPI.ApiURL, apiRequest, newTest.ProfileID, venPref, newTest.SupOrPref, newTest.CountryID, newTest.BreakoutID)
-			entryCountry.SetText(country)
-			entryBreakout.SetText(breakout)
-			entryRequest.SetText(textRequest)
+			entryCountry.SetText(entry.Country)
+			entryBreakout.SetText(entry.Breakout)
+			entryRequest.SetText(entry.Request)
 			return
 		}
 	}

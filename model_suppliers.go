@@ -30,7 +30,7 @@ func newModelSuppliers() *modelSuppliers {
 
 func dataTableSuppliers() (int, [][]string, error) {
 	var suppliers []structs.ItestSuppliers
-	searchTemplate = fmt.Sprintf("%s%%", newTest.SystemName)
+	searchTemplate := fmt.Sprintf("%s%%", newTest.SystemName)
 	fmt.Println(searchTemplate)
 	if err := pg.Where("supplier_name LIKE ?", searchTemplate).Find(&suppliers).Error; err != nil {
 		return 0, nil, err
@@ -52,20 +52,19 @@ func (ms *modelSuppliers) ButtAddSupplier() {
 	for i := 0; i < ms.quantityRows; i++ {
 		if ms.checkStates[i] == 1 {
 			fmt.Printf("Added row %d. Prefix=%s. ID=%s\n", i+1, ms.cellValue[3][i], ms.cellValue[1][i])
-			var supplier string
 			switch newTest.CallType {
 			case "CLI":
 				newTest.SupOrPref = ms.cellValue[1][i]
-				supplier = fmt.Sprintf("SupplierID: %s", ms.cellValue[1][i])
+				entry.Supplier = fmt.Sprintf("SupplierID: %s", ms.cellValue[1][i])
 			case "Voice":
 				newTest.SupOrPref = ms.cellValue[3][i]
-				supplier = fmt.Sprintf("Prefix: %s", ms.cellValue[3][i])
+				entry.Supplier = fmt.Sprintf("Prefix: %s", ms.cellValue[3][i])
 
 			}
-			textRequest = fmt.Sprintf("Request: %s?t=%d&profid=%s&%s=%s&ndbccgid=%s&ndbcgid=%s",
+			entry.Request = fmt.Sprintf("%s?t=%d&profid=%s&%s=%s&ndbccgid=%s&ndbcgid=%s",
 				itestAPI.ApiURL, apiRequest, newTest.ProfileID, venPref, newTest.SupOrPref, newTest.CountryID, newTest.BreakoutID)
-			entrySupplier.SetText(supplier)
-			entryRequest.SetText(textRequest)
+			entrySupplier.SetText(entry.Supplier)
+			entryRequest.SetText(entry.Request)
 			return
 		}
 	}

@@ -50,7 +50,7 @@ func (mp *modelProfiles) ButtAddProfile() {
 	for i := 0; i < mp.quantityRows; i++ {
 		if mp.checkStates[i] == 1 {
 			fmt.Printf("Added row %d. Profile=%s. ID=%s\n", i+1, mp.cellValue[2][i], mp.cellValue[1][i])
-			profile := fmt.Sprintf("Profile: %s", mp.cellValue[2][i])
+			entry.Profile = fmt.Sprintf("Profile: %s", mp.cellValue[2][i])
 			switch mp.cellValue[2][i] {
 			case "AMVTS":
 				newTest.SystemName = "amvts"
@@ -60,10 +60,10 @@ func (mp *modelProfiles) ButtAddProfile() {
 				newTest.SystemName = "fmvts"
 			}
 			newTest.ProfileID = mp.cellValue[1][i]
-			textRequest = fmt.Sprintf("Request: %s?t=%d&profid=%s&%s=%s&ndbccgid=%s&ndbcgid=%s",
+			entry.Request = fmt.Sprintf("%s?t=%d&profid=%s&%s=%s&ndbccgid=%s&ndbcgid=%s",
 				itestAPI.ApiURL, apiRequest, newTest.ProfileID, venPref, newTest.SupOrPref, newTest.CountryID, newTest.BreakoutID)
-			entryProfile.SetText(profile)
-			entryRequest.SetText(textRequest)
+			entryProfile.SetText(entry.Profile)
+			entryRequest.SetText(entry.Request)
 			return
 		}
 	}

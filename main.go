@@ -10,32 +10,71 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
-	"strings"
 
 	"github.com/andlabs/ui"
 	_ "github.com/andlabs/ui/winmanifest"
+	"github.com/jinzhu/gorm"
 	"golang.org/x/net/html/charset"
 
-	"github.com/jinzhu/gorm"
 	"redits.oculeus.com/asorokin/tcm/config"
 	"redits.oculeus.com/asorokin/tcm/database"
 	"redits.oculeus.com/asorokin/tcm/structs"
 )
 
 var (
-	itestAPI                                                      structs.ItestApi
-	newTest                                                       structs.NewInitTest
-	mainwin                                                       *ui.Window
-	pg                                                            *gorm.DB
-	apiRequest                                                    int
-	slash, absPath, searchTemplate, textRequest, venPref, prefSup string
+	itestAPI                         structs.ItestApi
+	newTest                          structs.NewInitTest
+	mainwin                          *ui.Window
+	pg                               *gorm.DB
+	apiRequest                       int
+	slash, absPath, venPref, prefSup string
 	entryType, entryProfile, entrySupplier,
 	entryCountry, entryBreakout, entryRequest *ui.Entry
+	entry Entrys
 )
 
 const (
 	settingsFile = "tcm.ini"
 )
+
+type Entrys struct {
+	TestType string
+	Profile  string
+	Supplier string
+	Country  string
+	Breakout string
+	Request  string
+}
+
+func newEntrys() Entrys {
+	return Entrys{
+		TestType: "Test Type:",
+		Profile:  "Profile:",
+		Supplier: "Supplier or Prefix:",
+		Country:  "Country:",
+		Breakout: "Breakout:",
+		Request:  itestAPI.ApiURL,
+	}
+}
+
+func (Breakouts) TableName() string {
+	var name string
+	switch newTest.CallType {
+	case "CLI":
+		name = os.Getenv("SCHEMA_PG") + "CallingSys_iTest_breakouts_cli"
+	case "Voice":
+		name = os.Getenv("SCHEMA_PG") + "CallingSys_iTest_breakouts_std"
+	}
+	fmt.Println(name)
+	return name
+}
+
+type Breakouts struct {
+	CountryName  string `gorm:"column:country_name;size:100"`
+	CountryID    string `gorm:"column:country_id;size:100"`
+	BreakoutName string `gorm:"column:breakout_name;size:100"`
+	BreakoutID   string `gorm:"column:breakout_id;size:100"`
+}
 
 func httpResponse(request string) (*http.Response, error) {
 	response, err := http.PostForm(request, url.Values{"email": {itestAPI.User}, "pass": {itestAPI.Pass}})
@@ -49,6 +88,10 @@ func xmlDecoder(response *http.Response) *xml.Decoder {
 	decoder := xml.NewDecoder(response.Body)
 	decoder.CharsetReader = charset.NewReaderLabel
 	return decoder
+}
+
+func NewTest() structs.NewInitTest {
+	return structs.NewInitTest{}
 }
 
 func init() {
@@ -130,21 +173,22 @@ func setupUI() {
 	mainVbox.Append(entrysHbox, false)
 
 	// Создание и управление ячейками
+	entry = newEntrys()
 	entryType = ui.NewEntry()
 	entryType.SetReadOnly(true)
-	entryType.SetText("Test Type:")
+	entryType.SetText(entry.TestType)
 	entryProfile = ui.NewEntry()
 	entryProfile.SetReadOnly(true)
-	entryProfile.SetText("Profile:")
+	entryProfile.SetText(entry.Profile)
 	entrySupplier = ui.NewEntry()
 	entrySupplier.SetReadOnly(true)
-	entrySupplier.SetText("Supplier or Prefix:")
+	entrySupplier.SetText(entry.Supplier)
 	entryCountry = ui.NewEntry()
 	entryCountry.SetReadOnly(true)
-	entryCountry.SetText("Country:")
+	entryCountry.SetText(entry.Country)
 	entryBreakout = ui.NewEntry()
 	entryBreakout.SetReadOnly(true)
-	entryBreakout.SetText("Breakout:")
+	entryBreakout.SetText(entry.Breakout)
 
 	// Размещение ячеек для добавленой информации
 	entrysHbox.Append(entryType, true)
@@ -159,8 +203,7 @@ func setupUI() {
 
 	entryRequest = ui.NewEntry()
 	entryRequest.SetReadOnly(true)
-	textRequest = fmt.Sprintf("Request: %s", itestAPI.ApiURL)
-	entryRequest.SetText(textRequest)
+	entryRequest.SetText(entry.Request)
 	requestHbox.Append(entryRequest, true)
 	// Кнопка старт тестов
 	buttonStart := ui.NewButton("Start Test")
@@ -175,8 +218,7 @@ func setupUI() {
 }
 
 func startTest() {
-	request := strings.Split(textRequest, "Request: ")[1]
-	response, err := httpResponse(request)
+	response, err := httpResponse(entry.Request)
 	if err != nil {
 		l.Println("Error http request. Error: ", err)
 	}
@@ -238,6 +280,8 @@ func makeProfilesPage() ui.Control {
 	vboxg.Append(rb, false)
 
 	rb.OnSelected(func(*ui.RadioButtons) {
+		newTest = NewTest()
+		entry = newEntrys()
 		var typeTest string
 		switch rb.Selected() {
 		case 0:
@@ -249,12 +293,13 @@ func makeProfilesPage() ui.Control {
 			apiRequest = itestAPI.TestInit
 			venPref = "prefix"
 		}
-		text := fmt.Sprintf("Test Type: %s", typeTest)
 		newTest.CallType = typeTest
-		textRequest = fmt.Sprintf("Request: %s?t=%d&profid=%s&%s=%s&ndbccgid=%s&ndbcgid=%s",
+		entry.TestType = "Test Type: " + typeTest
+		entry.Request = fmt.Sprintf("%s?t=%d&profid=%s&%s=%s&ndbccgid=%s&ndbcgid=%s",
 			itestAPI.ApiURL, apiRequest, newTest.ProfileID, venPref, newTest.SupOrPref, newTest.CountryID, newTest.BreakoutID)
-		entryType.SetText(text)
-		entryRequest.SetText(textRequest)
+		entryType.SetText(entry.TestType)
+		entryRequest.SetText(entry.Request)
+		fmt.Println(typeTest)
 	})
 
 	group = ui.NewGroup("Profiles")
@@ -351,7 +396,9 @@ func makeSuppliersPage() {
 }
 
 func makeDestinationsPage() {
+	// os.Unsetenv("TEST_TYPE")
 	if newTest.CallType != "" && newTest.SystemName != "" {
+		// os.Setenv("TEST_TYPE", newTest.CallType)
 		win := ui.NewWindow("Destinations", 780, 480, true)
 		win.OnClosing(func(*ui.Window) bool {
 			win.Destroy()
