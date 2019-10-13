@@ -53,7 +53,7 @@ func dataTableBreakouts() (int, [][]string, error) {
 func (mb *modelBreakouts) ButtAddBreakout() {
 	for i := 0; i < mb.quantityRows; i++ {
 		if mb.checkStates[i] == 1 {
-			fmt.Printf("Added row %d. CountryID=%s. Breakout=%s\n", i+1, mb.cellValue[1][i], mb.cellValue[4][i])
+			l.Printf("Select destinations:%s. CountryID:%s. Breakout:%s. Breakout_ID%s\n", mb.cellValue[2][i], mb.cellValue[1][i], mb.cellValue[3][i], mb.cellValue[4][i])
 			newTest.CountryID = mb.cellValue[1][i]
 			newTest.BreakoutID = mb.cellValue[4][i]
 			entry.Country = fmt.Sprintf("Country: %s", mb.cellValue[2][i])

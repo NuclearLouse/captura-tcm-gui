@@ -49,7 +49,7 @@ func dataTableProfiles() (int, [][]string, error) {
 func (mp *modelProfiles) ButtAddProfile() {
 	for i := 0; i < mp.quantityRows; i++ {
 		if mp.checkStates[i] == 1 {
-			fmt.Printf("Added row %d. Profile=%s. ID=%s\n", i+1, mp.cellValue[2][i], mp.cellValue[1][i])
+			l.Printf("Select Profile:%s. Profile_ID:%s\n", mp.cellValue[2][i], mp.cellValue[1][i])
 			entry.Profile = fmt.Sprintf("Profile: %s", mp.cellValue[2][i])
 			switch mp.cellValue[2][i] {
 			case "AMVTS":

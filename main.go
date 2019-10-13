@@ -65,7 +65,6 @@ func (Breakouts) TableName() string {
 	case "Voice":
 		name = os.Getenv("SCHEMA_PG") + "CallingSys_iTest_breakouts_std"
 	}
-	fmt.Println(name)
 	return name
 }
 
@@ -128,7 +127,7 @@ func init() {
 
 func main() {
 	ui.Main(setupUI)
-	defer fmt.Println(newTest)
+	defer l.Println("Exit program")
 }
 
 func apiSettings() error {
@@ -218,9 +217,10 @@ func setupUI() {
 }
 
 func startTest() {
+	l.Println("Start test")
 	response, err := httpResponse(entry.Request)
 	if err != nil {
-		l.Println("Error http request. Error: ", err)
+		l.Println("Error http request. Error= ", err)
 	}
 	// defer response.Body.Close()
 	// fmt.Println(response.Body)
@@ -299,7 +299,7 @@ func makeProfilesPage() ui.Control {
 			itestAPI.ApiURL, apiRequest, newTest.ProfileID, venPref, newTest.SupOrPref, newTest.CountryID, newTest.BreakoutID)
 		entryType.SetText(entry.TestType)
 		entryRequest.SetText(entry.Request)
-		fmt.Println(typeTest)
+		l.Println("Select Type test:", typeTest)
 	})
 
 	group = ui.NewGroup("Profiles")

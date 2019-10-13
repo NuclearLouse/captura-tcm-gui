@@ -31,7 +31,6 @@ func newModelSuppliers() *modelSuppliers {
 func dataTableSuppliers() (int, [][]string, error) {
 	var suppliers []structs.ItestSuppliers
 	searchTemplate := fmt.Sprintf("%s%%", newTest.SystemName)
-	fmt.Println(searchTemplate)
 	if err := pg.Where("supplier_name LIKE ?", searchTemplate).Find(&suppliers).Error; err != nil {
 		return 0, nil, err
 	}
@@ -51,7 +50,7 @@ func dataTableSuppliers() (int, [][]string, error) {
 func (ms *modelSuppliers) ButtAddSupplier() {
 	for i := 0; i < ms.quantityRows; i++ {
 		if ms.checkStates[i] == 1 {
-			fmt.Printf("Added row %d. Prefix=%s. ID=%s\n", i+1, ms.cellValue[3][i], ms.cellValue[1][i])
+			l.Printf("Select supplier:%s. Supplier_ID:%s .Prefix:%s\n", ms.cellValue[2][i], ms.cellValue[1][i], ms.cellValue[3][i])
 			switch newTest.CallType {
 			case "CLI":
 				newTest.SupOrPref = ms.cellValue[1][i]
