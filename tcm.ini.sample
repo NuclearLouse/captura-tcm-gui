@@ -1,0 +1,13 @@
+
+[connectdb]
+db_dialect    = postgres
+host          = localhost
+port          = 5432
+database      = my_db
+schema_pg     = my_schema
+user          = user
+password      = pass
+ssl_mode      = false
+sqlite_path   = 
+create_tables = false
+

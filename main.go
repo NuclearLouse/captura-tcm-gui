@@ -95,6 +95,11 @@ func NewTest() structs.NewInitTest {
 
 func init() {
 	var err error
+	cfg, err := config.ReadConfig(settingsFile)
+	if err != nil {
+		l.Fatalln("FATAL! Failed to load config. Error=", err)
+	}
+
 	switch runtime.GOOS {
 	case "linux":
 		slash = "/"
@@ -110,10 +115,6 @@ func init() {
 
 	absPath = filepath.Dir(ex)
 
-	cfg, err := config.ReadConfig(settingsFile)
-	if err != nil {
-		l.Fatalln("FATAL! Failed to load config. Error=", err)
-	}
 	db, err := database.NewDB(cfg, absPath+slash)
 	if err != nil {
 		l.Fatal("FATAL! Could not connect to the database. Error=", err)
@@ -126,6 +127,7 @@ func init() {
 }
 
 func main() {
+
 	ui.Main(setupUI)
 	defer l.Println("Exit program")
 }
