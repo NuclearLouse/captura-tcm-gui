@@ -29,9 +29,9 @@ func newModelBreakouts() *modelBreakouts {
 
 func dataTableBreakouts() (int, [][]string, error) {
 	var err error
-	var b Breakouts
+	var b breakouts
 	name := b.TableName()
-	var breakouts []Breakouts
+	var breakouts []breakouts
 	if err = pg.Table(name).Find(&breakouts).Error; err != nil {
 		return 0, nil, err
 	}
@@ -54,12 +54,12 @@ func (mb *modelBreakouts) ButtAddBreakout() {
 	for i := 0; i < mb.quantityRows; i++ {
 		if mb.checkStates[i] == 1 {
 			l.Printf("Select destinations:%s. CountryID:%s. Breakout:%s. Breakout_ID%s\n", mb.cellValue[2][i], mb.cellValue[1][i], mb.cellValue[3][i], mb.cellValue[4][i])
-			newTest.CountryID = mb.cellValue[1][i]
-			newTest.BreakoutID = mb.cellValue[4][i]
+			newtest.CountryID = mb.cellValue[1][i]
+			newtest.BreakoutID = mb.cellValue[4][i]
 			entry.Country = fmt.Sprintf("Country: %s", mb.cellValue[2][i])
 			entry.Breakout = fmt.Sprintf("Breakout: %s", mb.cellValue[3][i])
 			entry.Request = fmt.Sprintf("%s?t=%d&profid=%s&%s=%s&ndbccgid=%s&ndbcgid=%s",
-				itestAPI.ApiURL, apiRequest, newTest.ProfileID, venPref, newTest.SupOrPref, newTest.CountryID, newTest.BreakoutID)
+				itest.URL, apiRequest, newtest.ProfileID, venPref, newtest.SupOrPref, newtest.CountryID, newtest.BreakoutID)
 			entryCountry.SetText(entry.Country)
 			entryBreakout.SetText(entry.Breakout)
 			entryRequest.SetText(entry.Request)

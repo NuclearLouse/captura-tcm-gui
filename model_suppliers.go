@@ -6,8 +6,6 @@ import (
 
 	"github.com/andlabs/ui"
 	_ "github.com/andlabs/ui/winmanifest"
-
-	"redits.oculeus.com/asorokin/tcm/structs"
 )
 
 type modelSuppliers struct {
@@ -29,8 +27,8 @@ func newModelSuppliers() *modelSuppliers {
 }
 
 func dataTableSuppliers() (int, [][]string, error) {
-	var suppliers []structs.ItestSuppliers
-	searchTemplate := fmt.Sprintf("%s%%", newTest.SystemName)
+	var suppliers []itestSuppliers
+	searchTemplate := fmt.Sprintf("%s%%", newtest.SystemName)
 	if err := pg.Where("supplier_name LIKE ?", searchTemplate).Find(&suppliers).Error; err != nil {
 		return 0, nil, err
 	}
@@ -51,17 +49,17 @@ func (ms *modelSuppliers) ButtAddSupplier() {
 	for i := 0; i < ms.quantityRows; i++ {
 		if ms.checkStates[i] == 1 {
 			l.Printf("Select supplier:%s. Supplier_ID:%s .Prefix:%s\n", ms.cellValue[2][i], ms.cellValue[1][i], ms.cellValue[3][i])
-			switch newTest.CallType {
+			switch newtest.CallType {
 			case "CLI":
-				newTest.SupOrPref = ms.cellValue[1][i]
+				newtest.SupOrPref = ms.cellValue[1][i]
 				entry.Supplier = fmt.Sprintf("SupplierID: %s", ms.cellValue[1][i])
 			case "Voice":
-				newTest.SupOrPref = ms.cellValue[3][i]
+				newtest.SupOrPref = ms.cellValue[3][i]
 				entry.Supplier = fmt.Sprintf("Prefix: %s", ms.cellValue[3][i])
 
 			}
 			entry.Request = fmt.Sprintf("%s?t=%d&profid=%s&%s=%s&ndbccgid=%s&ndbcgid=%s",
-				itestAPI.ApiURL, apiRequest, newTest.ProfileID, venPref, newTest.SupOrPref, newTest.CountryID, newTest.BreakoutID)
+				itest.URL, apiRequest, newtest.ProfileID, venPref, newtest.SupOrPref, newtest.CountryID, newtest.BreakoutID)
 			entrySupplier.SetText(entry.Supplier)
 			entryRequest.SetText(entry.Request)
 			return

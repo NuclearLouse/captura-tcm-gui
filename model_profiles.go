@@ -6,8 +6,6 @@ import (
 
 	"github.com/andlabs/ui"
 	_ "github.com/andlabs/ui/winmanifest"
-
-	"redits.oculeus.com/asorokin/tcm/structs"
 )
 
 type modelProfiles struct {
@@ -29,7 +27,7 @@ func newModelProfiles() *modelProfiles {
 }
 
 func dataTableProfiles() (int, [][]string, error) {
-	var profiles []structs.ItestProfiles
+	var profiles []itestProfiles
 	if err := pg.Find(&profiles).Error; err != nil {
 		return 0, nil, err
 	}
@@ -53,15 +51,15 @@ func (mp *modelProfiles) ButtAddProfile() {
 			entry.Profile = fmt.Sprintf("Profile: %s", mp.cellValue[2][i])
 			switch mp.cellValue[2][i] {
 			case "AMVTS":
-				newTest.SystemName = "amvts"
+				newtest.SystemName = "amvts"
 			case "BMVTS":
-				newTest.SystemName = "bmvts"
+				newtest.SystemName = "bmvts"
 			case "Avys_S2":
-				newTest.SystemName = "fmvts"
+				newtest.SystemName = "fmvts"
 			}
-			newTest.ProfileID = mp.cellValue[1][i]
+			newtest.ProfileID = mp.cellValue[1][i]
 			entry.Request = fmt.Sprintf("%s?t=%d&profid=%s&%s=%s&ndbccgid=%s&ndbcgid=%s",
-				itestAPI.ApiURL, apiRequest, newTest.ProfileID, venPref, newTest.SupOrPref, newTest.CountryID, newTest.BreakoutID)
+				itest.URL, apiRequest, newtest.ProfileID, venPref, newtest.SupOrPref, newtest.CountryID, newtest.BreakoutID)
 			entryProfile.SetText(entry.Profile)
 			entryRequest.SetText(entry.Request)
 			return

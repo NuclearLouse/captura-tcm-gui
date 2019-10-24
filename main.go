@@ -7,37 +7,30 @@ import (
 	l "log"
 	"net/http"
 	"net/url"
-	"os"
-	"path/filepath"
-	"runtime"
 
 	"github.com/andlabs/ui"
 	_ "github.com/andlabs/ui/winmanifest"
 	"github.com/jinzhu/gorm"
 	"golang.org/x/net/html/charset"
-
-	"redits.oculeus.com/asorokin/tcm/config"
-	"redits.oculeus.com/asorokin/tcm/database"
-	"redits.oculeus.com/asorokin/tcm/structs"
 )
 
 var (
-	itestAPI                         structs.ItestApi
-	newTest                          structs.NewInitTest
+	itest                            itestAPI
+	newtest                          newInitTest
 	mainwin                          *ui.Window
 	pg                               *gorm.DB
 	apiRequest                       int
 	slash, absPath, venPref, prefSup string
 	entryType, entryProfile, entrySupplier,
 	entryCountry, entryBreakout, entryRequest *ui.Entry
-	entry Entrys
+	entry entrys
 )
 
 const (
 	settingsFile = "tcm.ini"
 )
 
-type Entrys struct {
+type entrys struct {
 	TestType string
 	Profile  string
 	Supplier string
@@ -46,37 +39,19 @@ type Entrys struct {
 	Request  string
 }
 
-func newEntrys() Entrys {
-	return Entrys{
+func newEntrys() entrys {
+	return entrys{
 		TestType: "Test Type:",
 		Profile:  "Profile:",
 		Supplier: "Supplier or Prefix:",
 		Country:  "Country:",
 		Breakout: "Breakout:",
-		Request:  itestAPI.ApiURL,
+		Request:  itest.URL,
 	}
-}
-
-func (Breakouts) TableName() string {
-	var name string
-	switch newTest.CallType {
-	case "CLI":
-		name = os.Getenv("SCHEMA_PG") + "CallingSys_iTest_breakouts_cli"
-	case "Voice":
-		name = os.Getenv("SCHEMA_PG") + "CallingSys_iTest_breakouts_std"
-	}
-	return name
-}
-
-type Breakouts struct {
-	CountryName  string `gorm:"column:country_name;size:100"`
-	CountryID    string `gorm:"column:country_id;size:100"`
-	BreakoutName string `gorm:"column:breakout_name;size:100"`
-	BreakoutID   string `gorm:"column:breakout_id;size:100"`
 }
 
 func httpResponse(request string) (*http.Response, error) {
-	response, err := http.PostForm(request, url.Values{"email": {itestAPI.User}, "pass": {itestAPI.Pass}})
+	response, err := http.PostForm(request, url.Values{"email": {itest.User}, "pass": {itest.Pass}})
 	if err != nil {
 		return nil, err
 	}
@@ -89,33 +64,18 @@ func xmlDecoder(response *http.Response) *xml.Decoder {
 	return decoder
 }
 
-func NewTest() structs.NewInitTest {
-	return structs.NewInitTest{}
+func newTest() newInitTest {
+	return newInitTest{}
 }
 
 func init() {
 	var err error
-	cfg, err := config.ReadConfig(settingsFile)
+	cfg, err := readConfig(settingsFile)
 	if err != nil {
 		l.Fatalln("FATAL! Failed to load config. Error=", err)
 	}
 
-	switch runtime.GOOS {
-	case "linux":
-		slash = "/"
-	case "windows":
-		slash = "\\"
-	default:
-		l.Fatalf("%s not support operation system", runtime.GOOS)
-	}
-	ex, err := os.Executable()
-	if err != nil {
-		l.Fatalln("FATAL! Cann't get the absolute path of the executive file. Error=", err)
-	}
-
-	absPath = filepath.Dir(ex)
-
-	db, err := database.NewDB(cfg, absPath+slash)
+	db, err := newDB(cfg)
 	if err != nil {
 		l.Fatal("FATAL! Could not connect to the database. Error=", err)
 	}
@@ -133,7 +93,7 @@ func main() {
 }
 
 func apiSettings() error {
-	if err := pg.Take(&itestAPI).Error; err != nil {
+	if err := pg.Take(&itest).Error; err != nil {
 		return err
 	}
 	return nil
@@ -282,23 +242,23 @@ func makeProfilesPage() ui.Control {
 	vboxg.Append(rb, false)
 
 	rb.OnSelected(func(*ui.RadioButtons) {
-		newTest = NewTest()
+		newtest = newTest()
 		entry = newEntrys()
 		var typeTest string
 		switch rb.Selected() {
 		case 0:
 			typeTest = "CLI"
-			apiRequest = itestAPI.TestInitCli
+			apiRequest = itest.TestInitCli
 			venPref = "vended"
 		case 1:
 			typeTest = "Voice"
-			apiRequest = itestAPI.TestInit
+			apiRequest = itest.TestInit
 			venPref = "prefix"
 		}
-		newTest.CallType = typeTest
+		newtest.CallType = typeTest
 		entry.TestType = "Test Type: " + typeTest
 		entry.Request = fmt.Sprintf("%s?t=%d&profid=%s&%s=%s&ndbccgid=%s&ndbcgid=%s",
-			itestAPI.ApiURL, apiRequest, newTest.ProfileID, venPref, newTest.SupOrPref, newTest.CountryID, newTest.BreakoutID)
+			itest.URL, apiRequest, newtest.ProfileID, venPref, newtest.SupOrPref, newtest.CountryID, newtest.BreakoutID)
 		entryType.SetText(entry.TestType)
 		entryRequest.SetText(entry.Request)
 		l.Println("Select Type test:", typeTest)
@@ -342,7 +302,7 @@ func makeProfilesPage() ui.Control {
 }
 
 func makeSuppliersPage() {
-	if newTest.SystemName != "" {
+	if newtest.SystemName != "" {
 		win := ui.NewWindow("Suppliers", 780, 480, true)
 		win.OnClosing(func(*ui.Window) bool {
 			win.Destroy()
@@ -399,7 +359,7 @@ func makeSuppliersPage() {
 
 func makeDestinationsPage() {
 	// os.Unsetenv("TEST_TYPE")
-	if newTest.CallType != "" && newTest.SystemName != "" {
+	if newtest.CallType != "" && newtest.SystemName != "" {
 		// os.Setenv("TEST_TYPE", newTest.CallType)
 		win := ui.NewWindow("Destinations", 780, 480, true)
 		win.OnClosing(func(*ui.Window) bool {
