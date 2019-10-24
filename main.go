@@ -1,17 +1,12 @@
 package main
 
 import (
-	"encoding/xml"
 	"fmt"
-	"io/ioutil"
 	l "log"
-	"net/http"
-	"net/url"
 
 	"github.com/andlabs/ui"
 	_ "github.com/andlabs/ui/winmanifest"
 	"github.com/jinzhu/gorm"
-	"golang.org/x/net/html/charset"
 )
 
 var (
@@ -48,20 +43,6 @@ func newEntrys() entrys {
 		Breakout: "Breakout:",
 		Request:  itest.URL,
 	}
-}
-
-func httpResponse(request string) (*http.Response, error) {
-	response, err := http.PostForm(request, url.Values{"email": {itest.User}, "pass": {itest.Pass}})
-	if err != nil {
-		return nil, err
-	}
-	return response, nil
-}
-
-func xmlDecoder(response *http.Response) *xml.Decoder {
-	decoder := xml.NewDecoder(response.Body)
-	decoder.CharsetReader = charset.NewReaderLabel
-	return decoder
 }
 
 func newTest() newInitTest {
@@ -176,28 +157,6 @@ func setupUI() {
 	requestHbox.Append(buttonStart, false)
 
 	mainwin.Show()
-}
-
-func startTest() {
-	l.Println("Start test")
-	response, err := httpResponse(entry.Request)
-	if err != nil {
-		l.Println("Error http request. Error= ", err)
-	}
-	// defer response.Body.Close()
-	// fmt.Println(response.Body)
-	// decoder := xmlDecoder(response)
-	// var testinit structs.TestInitiation
-	// if err := decoder.Decode(&testinit); err != nil {
-	// 	l.Println("Error decode http response. Error: ", err)
-	// }
-	// fmt.Println(testinit)
-	body, err := ioutil.ReadAll(response.Body)
-	response.Body.Close()
-	if err != nil {
-		l.Println("Не смог прочитать тело ответа. Ошибка=", err)
-	}
-	l.Println(string(body))
 }
 
 func makeProfilesPage() ui.Control {
